@@ -123,7 +123,7 @@ export const GraphCanvas = ({ graph, activeTool, setGraph, setActiveTool }: Prop
     defs.append('marker')
       .attr('id', 'arrow')
       .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 10)  // 确保 refX, refY 调整为合适的位置
+      .attr('refX', 10)  // make sure the arrowhead is at the end of the line
       .attr('refY', 0)
       .attr('markerWidth', 6)
       .attr('markerHeight', 6)
@@ -139,13 +139,20 @@ export const GraphCanvas = ({ graph, activeTool, setGraph, setActiveTool }: Prop
       })
       .on("drag", function (event: d3.D3DragEvent<SVGCircleElement, Node, unknown>, d: Node) {
         if (activeTool === ToolTypes.SELECT.value) {
-          if (selectedItems.includes(d)) {
+          let updatedSelectedItems = [...selectedItems];
+    
+          if (!updatedSelectedItems.includes(d)) {
+            updatedSelectedItems = [d];
+            setSelectedItems(updatedSelectedItems);
+          }
+
+          if (updatedSelectedItems.includes(d)) {
             d3.select(svgRef.current).select(`circle#${d.id}`).raise()
             const dx = event.dx;
             const dy = event.dy;
 
             // update position of selected nodes
-            selectedItems.forEach(item => {
+            updatedSelectedItems.forEach(item => {
               const node = graph.getNodeById(item.id);
               if (!node) {
                 return;
@@ -159,11 +166,11 @@ export const GraphCanvas = ({ graph, activeTool, setGraph, setActiveTool }: Prop
 
               // update position of connected edges
               svg.selectAll("line")
-                .filter(l => l.sourceId === node.id || l.targetId === node.id)
-                .attr("x1", l => calculateEdgePoint(graph.getNodeById(l.sourceId), graph.getNodeById(l.targetId)).x)
-                .attr("y1", l => calculateEdgePoint(graph.getNodeById(l.sourceId), graph.getNodeById(l.targetId)).y)
-                .attr("x2", l => calculateEdgePoint(graph.getNodeById(l.targetId), graph.getNodeById(l.sourceId)).x)
-                .attr("y2", l => calculateEdgePoint(graph.getNodeById(l.targetId), graph.getNodeById(l.sourceId)).y);
+                .filter(l => (l as Link).sourceId === node.id || (l as Link).targetId === node.id)
+                .attr("x1", l => calculateEdgePoint(graph.getNodeById((l as Link).sourceId), graph.getNodeById((l as Link).targetId)).x)
+                .attr("y1", l => calculateEdgePoint(graph.getNodeById((l as Link).sourceId), graph.getNodeById((l as Link).targetId)).y)
+                .attr("x2", l => calculateEdgePoint(graph.getNodeById((l as Link).targetId), graph.getNodeById((l as Link).sourceId)).x)
+                .attr("y2", l => calculateEdgePoint(graph.getNodeById((l as Link).targetId), graph.getNodeById((l as Link).sourceId)).y);
             });
           }
         }
@@ -182,12 +189,12 @@ export const GraphCanvas = ({ graph, activeTool, setGraph, setActiveTool }: Prop
 
     // draw and update nodes
     const nodes = svg.selectAll("circle")
-      .data(graph.nodes, d => d.id);
+      .data(graph.nodes, d => (d as Node).id);
 
     nodes.enter()
       .append("circle")
       .attr("id", d => d.id)
-      .attr("r", 20)
+      .attr("r", d => d.r)
       .style("fill", "steelblue")
       .style("cursor", "pointer")
       .merge(nodes)
@@ -204,7 +211,7 @@ export const GraphCanvas = ({ graph, activeTool, setGraph, setActiveTool }: Prop
 
     // draw and update links
     const links = svg.selectAll("line")
-      .data(graph.links, d => `${d.sourceId}-${d.targetId}`);
+      .data(graph.links, l => `${(l as Link).sourceId}-${(l as Link).targetId}`);
 
     links.enter()
       .append("line")
@@ -244,7 +251,6 @@ export const GraphCanvas = ({ graph, activeTool, setGraph, setActiveTool }: Prop
     function handleMouseDown(event: React.MouseEvent<SVGSVGElement, MouseEvent>) {
       const [x, y] = d3.pointer(event);
       setSelectionBox({ startX: x, startY: y, width: 0, height: 0, isSelecting: true });
-      console.log(selectionBox)
     }
 
     function handleMouseMove(event: React.MouseEvent<SVGSVGElement, MouseEvent>) {
@@ -273,7 +279,7 @@ export const GraphCanvas = ({ graph, activeTool, setGraph, setActiveTool }: Prop
         }
         else {
           setSelectedItems(selected);
-          console.log('Selected items:', selected);
+          console.log('u Selected items:', selected);
         }
         setSelectionBox(prev => ({ ...prev, isSelecting: false }));
       }
@@ -296,6 +302,9 @@ export const GraphCanvas = ({ graph, activeTool, setGraph, setActiveTool }: Prop
     }
 
     const selected = graph.nodes.filter(node => {
+      if (!box.startX || !box.startY || !box.width || !box.height) {
+        return false;
+      }
       return node.x >= box.startX && node.x <= box.startX + box.width &&
         node.y >= box.startY && node.y <= box.startY + box.height;
     });
