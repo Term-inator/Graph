@@ -66,3 +66,37 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.sidebar {
+  width: 50px;       /* 工具栏宽度 */
+  background: #f4f4f4;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 20px; /* 上边距 */
+}
+
+.sidbar button {
+  width: 40px;       /* 按钮宽度 */
+  height: 40px;
+  margin-bottom: 10px; /* 按钮间隔 */
+  cursor: pointer;
+}
+
+
+.selected {
+  stroke: red; /* 边框颜色 */
+  stroke-width: 2px; /* 边框宽度 */
+  fill: orange; /* 填充颜色，适用于节点 */
+}
+
+.not-selected {
+  stroke: #333; /* 边框颜色 */
+  stroke-width: 2px; /* 边框宽度 */
+  fill: #f9f9f9; /* 填充颜色，适用于节点 */
+}
+
