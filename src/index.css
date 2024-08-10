@@ -100,3 +100,21 @@ button:focus-visible {
   fill: #f9f9f9; /* 填充颜色，适用于节点 */
 }
 
+.graph-editor {
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+.toolbar {
+  position: relative;
+  width: 60px;
+}
+
+.graph-canvas {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}

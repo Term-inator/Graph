@@ -6,11 +6,12 @@ import { GraphCanvas } from './graphCanvas';
 import { ToolType, ToolTypes } from './tools';
 
 interface ToolbarProps {
+  className: string;
   activeTool: string | null;
   setActiveTool: (tool: string) => void;
 }
 
-const Toolbar = ({ activeTool, setActiveTool }: ToolbarProps) => {
+const Toolbar = ({ className, activeTool, setActiveTool }: ToolbarProps) => {
   const handleToolChange = (event: React.MouseEvent<HTMLElement>, newTool: string | null) => {
     if (newTool !== null) {
       setActiveTool(newTool);
@@ -18,20 +19,22 @@ const Toolbar = ({ activeTool, setActiveTool }: ToolbarProps) => {
   };
 
   return (
-    <ToggleButtonGroup
-      orientation="vertical"
-      value={activeTool}
-      exclusive
-      onChange={handleToolChange}
-      aria-label="tool selection"
-      sx={{ width: 60, position: 'absolute', top: 20, left: 0 }}
-    >
-      {Object.values(ToolTypes).map((tool) => (
-        <ToggleButton key={tool.value} value={tool.value} aria-label={tool.value.toLowerCase()}>
-          {tool.Icon ? <tool.Icon /> : tool.value}
-        </ToggleButton>
-      ))}
-    </ToggleButtonGroup>
+    <div className={className}>
+      <ToggleButtonGroup
+        orientation="vertical"
+        value={activeTool}
+        exclusive
+        onChange={handleToolChange}
+        aria-label="tool selection"
+        sx={{ width: 60, position: 'absolute', top: 20, left: 0 }}
+      >
+        {Object.values(ToolTypes).map((tool) => (
+          <ToggleButton key={tool.value} value={tool.value} aria-label={tool.value.toLowerCase()}>
+            {tool.Icon ? <tool.Icon /> : tool.value}
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+    </div>
   );
 };
 
@@ -48,20 +51,29 @@ const GraphEditor = () => {
 
   return (
     <div className="graph-editor">
-      <Toolbar activeTool={activeTool} setActiveTool={handleToolSelect} />
+      <Toolbar 
+        className="toolbar"
+        activeTool={activeTool} 
+        setActiveTool={handleToolSelect} 
+      />
       <GraphCanvas
+        className="graph-canvas"
         graph={graph}
         activeTool={activeTool}
         setGraph={setGraph}
         setActiveTool={setActiveTool}
+        setDrawerVisible={setDrawerVisible}
       />
       <Drawer
         title="Node Properties"
-        size="large"
-        visible={drawerVisible}
+        anchor={"right"}
+        open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
+        ModalProps={{ hideBackdrop: true }}  // hide the backdrop to prevent clicking on the canvas
+        sx={{ width: 300 }}
       >
         {/* Node properties form goes here */}
+        <div>123</div>
       </Drawer>
     </div>
   );

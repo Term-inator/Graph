@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { act, useEffect, useRef, useState } from 'react';
 import { Graph } from './graph';
 import { ToolTypes } from './tools';
 import { Node, Link } from './types';
@@ -25,10 +25,12 @@ function calculateEdgePoint(node: Node | undefined, target: Node | undefined) {
 }
 
 interface Props {
+  className?: string;
   graph: Graph;
   activeTool: string | null;
   setGraph: (graph: Graph) => void;
   setActiveTool: (tool: string | null) => void;
+  setDrawerVisible: (visible: boolean) => void;
 }
 
 interface SelectionBox {
@@ -39,31 +41,17 @@ interface SelectionBox {
   isSelecting: boolean;
 }
 
-export const GraphCanvas = ({ graph, activeTool, setGraph, setActiveTool }: Props) => {
+export const GraphCanvas = ({ className, graph, activeTool, setGraph, setActiveTool, setDrawerVisible }: Props) => {
   const svgRef = useRef<SVGElement>(null);
+  // selected items
   const [selectedItems, setSelectedItems] = useState<Node[]>([]);
   const [selectionBox, setSelectionBox] = useState<SelectionBox>({ startX: null, startY: null, width: null, height: null, isSelecting: false });
+  // viewBox
+  const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: 800, height: 600 });
+  const [startPan, setStartPan] = useState({ x: 0, y: 0, isPanning: false });
+  // link source
   const linkSource = useRef<Node | null>(null);
 
-  const handleCanvasClick = (event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
-    if (activeTool === ToolTypes.SELECT.value) {
-      setSelectedItems([]);  // click on canvas to clear selection
-    }
-    else if (activeTool === ToolTypes.NODE.value) {
-      const coords = d3.pointer(event);
-      const newNode: Node = {
-        id: `node-${graph.getNodeId()}`,
-        type: activeTool.replace('add', ''),
-        x: coords[0],
-        y: coords[1],
-        r: 20,
-        properties: {}
-      };
-      graph.addNode(newNode);
-      setGraph(new Graph([...graph.nodes], [...graph.links]));
-      console.log('New node added:', newNode);
-    }
-  };
 
   const handleLinkNode = (event: React.MouseEvent<SVGSVGElement, MouseEvent>, node: Node) => {
     if (activeTool === ToolTypes.LINK.value) {
@@ -184,8 +172,6 @@ export const GraphCanvas = ({ graph, activeTool, setGraph, setActiveTool }: Prop
 
       });
 
-    // handle canvas click
-    svg.on('click', handleCanvasClick);
 
     // draw and update nodes
     const nodes = svg.selectAll("circle")
@@ -245,56 +231,6 @@ export const GraphCanvas = ({ graph, activeTool, setGraph, setActiveTool }: Prop
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [selectedItems, graph, setGraph]);
 
-  useEffect(() => {
-    const svg = d3.select(svgRef.current);
-
-    function handleMouseDown(event: React.MouseEvent<SVGSVGElement, MouseEvent>) {
-      const [x, y] = d3.pointer(event);
-      setSelectionBox({ startX: x, startY: y, width: 0, height: 0, isSelecting: true });
-    }
-
-    function handleMouseMove(event: React.MouseEvent<SVGSVGElement, MouseEvent>) {
-      if (selectionBox.isSelecting) {
-        const [x, y] = d3.pointer(event);
-
-        if (selectionBox.startX === null || selectionBox.startY === null) {
-          return;
-        }
-
-        const width = Math.abs(x - selectionBox.startX);
-        const height = Math.abs(y - selectionBox.startY);
-        const startX = Math.min(x, selectionBox.startX);
-        const startY = Math.min(y, selectionBox.startY);
-        setSelectionBox(prev => ({ ...prev, startX, startY, width, height }));
-      }
-    }
-
-    function handleMouseUp(event: React.MouseEvent<SVGSVGElement, MouseEvent>) {
-      if (selectionBox.isSelecting) {
-        // Perform the selection
-        const selected = selectNodesInArea(selectionBox);
-        if (event.ctrlKey || event.metaKey) {
-          // use Ctrl or Cmd key to add to selection
-          setSelectedItems([...selectedItems, ...selected]);
-        }
-        else {
-          setSelectedItems(selected);
-          console.log('u Selected items:', selected);
-        }
-        setSelectionBox(prev => ({ ...prev, isSelecting: false }));
-      }
-    }
-
-    svg.on('mousedown', handleMouseDown);
-    svg.on('mousemove', handleMouseMove);
-    svg.on('mouseup', handleMouseUp);
-
-    return () => {
-      svg.on('mousedown', null);
-      svg.on('mousemove', null);
-      svg.on('mouseup', null);
-    };
-  }, [selectionBox]);
 
   function selectNodesInArea(box: SelectionBox) {
     if (!box.startX || !box.startY || !box.width || !box.height) {
@@ -311,17 +247,109 @@ export const GraphCanvas = ({ graph, activeTool, setGraph, setActiveTool }: Prop
     return selected
   }
 
+  const handleMouseDown = (event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
+    const [x, y] = d3.pointer(event);
+
+    if (activeTool === ToolTypes.SELECT.value) {
+      if (event.button === 0) {
+        setSelectionBox({ startX: x, startY: y, width: 0, height: 0, isSelecting: true });
+      } else if (event.button === 1) {
+        setStartPan({ x: event.clientX, y: event.clientY, isPanning: true });
+      }
+      if (!selectionBox.isSelecting && !startPan.isPanning) {
+        console.log('Canvas clicked');
+        setSelectedItems([]);  // click on canvas to clear selection
+      }
+    }
+    else if (activeTool === ToolTypes.NODE.value) {
+      const coords = d3.pointer(event);
+      const newNode: Node = {
+        id: `node-${graph.getNodeId()}`,
+        type: activeTool.replace('add', ''),
+        x: coords[0],
+        y: coords[1],
+        r: 20,
+        properties: {}
+      };
+      graph.addNode(newNode);
+      setGraph(new Graph([...graph.nodes], [...graph.links]));
+      console.log('New node added:', newNode);
+    }
+  };
+
+  const handleMouseMove = (event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
+    const [x, y] = d3.pointer(event);
+
+    if (selectionBox.isSelecting) {
+      const width = Math.abs(x - (selectionBox.startX || 0));
+      const height = Math.abs(y - (selectionBox.startY || 0));
+      const startX = Math.min(x, selectionBox.startX || 0);
+      const startY = Math.min(y, selectionBox.startY || 0);
+      setSelectionBox(prev => ({ ...prev, startX, startY, width, height }));
+    } else if (startPan.isPanning) {
+      const dx = event.clientX - startPan.x;
+      const dy = event.clientY - startPan.y;
+      setViewBox(prev => ({
+        ...prev,
+        x: prev.x - dx,
+        y: prev.y - dy
+      }));
+      setStartPan({ x: event.clientX, y: event.clientY, isPanning: true });
+    }
+  };
+
+  const handleMouseUp = (event: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
+    if (selectionBox.isSelecting) {
+      const selected = selectNodesInArea(selectionBox);
+      setSelectedItems(prev => event.ctrlKey || event.metaKey ? [...prev, ...selected] : selected);
+      setSelectionBox(prev => ({ ...prev, isSelecting: false }));
+    } else if (startPan.isPanning) {
+      setStartPan({ x: 0, y: 0, isPanning: false });
+    }
+  };
+
+  useEffect(() => {
+    const svg = d3.select(svgRef.current);
+  
+    svg.on('mousedown', handleMouseDown);
+    svg.on('mousemove', handleMouseMove);
+    svg.on('mouseup', handleMouseUp);
+  
+    return () => {
+      svg.on('mousedown', null);
+      svg.on('mousemove', null);
+      svg.on('mouseup', null);
+    };
+  }, [activeTool, selectionBox, startPan]);
+  
+  
+
+  useEffect(() => {
+    if (activeTool === ToolTypes.SELECT.value) {
+      if (selectedItems.length === 1) {
+        setDrawerVisible(true);
+      }
+      else {
+        setDrawerVisible(false);
+      }
+    } else {
+      setDrawerVisible(false);
+    }
+  }, [selectedItems]);
+
+
 
   return (
-    <svg ref={svgRef} width="800" height="600">
-      {selectionBox.isSelecting && (
-        <rect fill="rgba(0, 0, 255, 0.2)" stroke="blue"
-          x={selectionBox.startX as number} y={selectionBox.startY as number}
-          width={selectionBox.width as number} height={selectionBox.height as number}
-        />
-      )}
-      {/* Render nodes and links here */}
-    </svg>
+    <div className={className}>
+      <svg ref={svgRef} width="100%" height="100%" viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}>
+        {selectionBox.isSelecting && (
+          <rect fill="rgba(0, 0, 255, 0.2)" stroke="blue"
+            x={selectionBox.startX as number} y={selectionBox.startY as number}
+            width={selectionBox.width as number} height={selectionBox.height as number}
+          />
+        )}
+      </svg>
+    </div>
   );
 };
 
