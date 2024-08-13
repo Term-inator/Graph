@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Drawer, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import styled from '@emotion/styled';
-import { debounce, set, get } from 'lodash';
+import { debounce } from 'lodash';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
@@ -49,7 +49,7 @@ const Toolbar = ({ className, activeTool, setActiveTool }: ToolbarProps) => {
 
 interface PropertyDrawerProps {
   drawerVisible: boolean;
-  changeHandler: (key: string, value: any) => void;
+  changeHandler: (value: any) => void;
 }
 
 
@@ -72,6 +72,7 @@ const PropertyDrawer = ({ drawerVisible, changeHandler }: PropertyDrawerProps) =
       <PropertyHeader>Properties</PropertyHeader>
       <DynamicForm 
         properties={selectedItems.length === 1 ? selectedItems[0].properties : {}}
+        propertiesValue={selectedItems.length === 1 ? selectedItems[0].propertiesValue : {}}
         onChange={changeHandler}
       />
     </Drawer>
@@ -90,43 +91,12 @@ const GraphEditor = () => {
     setActiveTool(activeTool === tool ? null : tool);
   };
 
-  const changeHandler = (path: string, value: any) => {
-    const selecteNode = selectedItems[0];
-    if (!selecteNode) {
-      return;
-    }
-
-    const pathParts = path.split('.');
-
-    if (selecteNode.properties[pathParts[0]].type === 'property') {
-      // insert 'properties' at the second position in the path
-      pathParts.splice(1, 0, 'properties');
-    }
-  
-    // 构建新的 value 路径
-    const valuePath = `${pathParts.join('.')}.value`;
-
-    // 检查给定路径下是否已有 value 字段
-    const currentValue = get(selecteNode.properties, valuePath);
-
-    // 如果 currentValue 未定义，则说明需要新增字段
-    if (currentValue === undefined) {
-      // 在指定路径创建新的 value 字段并设置其值
-      set(selecteNode.properties, valuePath, value);
-    } else {
-      // 更新已存在的 value 字段
-      set(selecteNode.properties, valuePath, value);
-    }
-    console.log(selecteNode.properties);
-    const updatedNodes = graph.nodes.map(node => {
-      if (node.id === selecteNode.id) {
-        return selecteNode;
-      }
-      return node;
-    });
-    console.log("set")
-    setGraph(new Graph(updatedNodes, graph.links));
-  }
+  const changeHandler = (value: any) => {
+    const selectedNode = graph.getNodeById(selectedItems[0].id);
+    selectedNode?.setPropertiesValue(value);
+    selectedItems[0].setPropertiesValue(value);
+    setSelectedItems([selectedItems[0]]);
+  };
 
   const debouncedChangeHandler = debounce(changeHandler, 300);
 

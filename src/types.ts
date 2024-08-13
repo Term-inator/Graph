@@ -8,10 +8,19 @@ export interface Property {
 class Base {
   id: string;
   properties: { [key: string]: Property };
+  propertiesValue: { [key: string]: any } = {};
 
   constructor(id: string, properties: { [key: string]: Property }) {
     this.id = id;
     this.properties = properties;
+  }
+
+  getPropertiesValue() {
+    return this.propertiesValue;
+  }
+
+  setPropertiesValue(value: any) {
+    this.propertiesValue = value;
   }
 }
 

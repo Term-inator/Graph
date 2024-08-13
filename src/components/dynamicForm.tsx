@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import { Button, TextField, Switch, FormGroup, Box } from '@mui/material';
 import { useDrag, useDrop } from 'react-dnd';
 import { Property } from '../types';
+import { cloneDeep } from 'lodash';
 
 interface DraggableItemProps {
   index: number;
@@ -58,8 +59,9 @@ const DraggableItem: React.FC<DraggableItemProps> = ({ index, type, moveItem, ch
 
 const useUniqueKeys = (items: any[], idFn: (item: any) => string | number) => {
   const keysRef = useRef(new Map());
-  const keys = items.map(item => {
-    const id = idFn(item);
+  const keys = items.map((item, index) => {
+    // const id = idFn(item);
+    const id = index
     if (keysRef.current.has(id)) {
       return keysRef.current.get(id);
     }
@@ -76,7 +78,14 @@ const Label = styled('label')`
   line-height: 40px;
 `;
 
-const FormItem: React.FC<{ property: Property, label: string, onChange: (value: any) => void }> = ({ property, label, onChange }) => {
+interface FormItemProps {
+  property: Property;
+  label: string;
+  propertyValue: { [key: string]: any } | Property[];
+  onChange: (value: any) => void;
+}
+
+const FormItem: React.FC<FormItemProps> = ({ property, propertyValue, label, onChange }) => {
   switch (property.type) {
     case 'string':
     case 'number':
@@ -87,6 +96,12 @@ const FormItem: React.FC<{ property: Property, label: string, onChange: (value: 
             type={property.type === 'number' ? 'number' : 'text'}
             variant="outlined"
             fullWidth
+            value={(() => {
+              if (propertyValue instanceof Object) {
+                return (propertyValue as { [key: string]: any }).value || '';
+              }
+              return propertyValue || '';
+            })()}
             onChange={(e) => onChange(property.type === 'number' ? Number(e.target.value) : e.target.value)}
           />
         </Box>
@@ -95,7 +110,15 @@ const FormItem: React.FC<{ property: Property, label: string, onChange: (value: 
       return (
         <Box display="flex" alignItems="center" marginBottom={2}>
           <Label>{label}</Label>
-          <Switch onChange={(e) => onChange(e.target.checked)} />
+          <Switch 
+            checked={(() => {
+              if (propertyValue instanceof Object) {
+                return (propertyValue as { [key: string]: any }).value || false;
+              }
+              return propertyValue || false;
+            })()}
+            onChange={(e) => onChange(e.target.checked)} 
+          />
         </Box>
       );
       case 'property':
@@ -108,8 +131,9 @@ const FormItem: React.FC<{ property: Property, label: string, onChange: (value: 
                   key={key}
                   label={key}
                   property={property.properties![key]}
+                  propertyValue={(propertyValue as { [key: string]: any })?.properties[key] || undefined}
                   onChange={(value) => {
-                    const newProp = {...property, properties: {...property.properties}};
+                    const newProp = {...propertyValue, properties: {...(propertyValue as { [key: string]: any })?.properties}};
                     newProp.properties[key] = {...newProp.properties[key], value};
                     onChange(newProp);
                   }}
@@ -121,13 +145,11 @@ const FormItem: React.FC<{ property: Property, label: string, onChange: (value: 
       
       case 'array':
         const arrayType = `array-${label}`;
-        const [items, setItems] = useState<any[]>(property.value || []);
+        const [items, setItems] = useState<any[]>(propertyValue as Property[] || []);
         const handleAdd = () => {
           const newItem = {
             type: 'property',
-            properties: {
-              ...property.properties // Assuming default values or structures
-            }
+            properties: cloneDeep(property.properties)
           };
           setItems([...items, newItem]);
           onChange([...items, newItem]);
@@ -158,10 +180,12 @@ const FormItem: React.FC<{ property: Property, label: string, onChange: (value: 
                   <Box marginLeft={2}>
                   {item.properties && Object.keys(item.properties).map((key) => (
                     <FormItem
-                      key={key}
+                      key={index + key}
                       label={key}
                       property={item.properties[key]}
+                      propertyValue={item.properties[key].value}
                       onChange={(value) => {
+                        console.log(index, value);
                         const newItems = [...items];
                         if (value.type === 'property') {
                           newItems[index].properties[key] = value;
@@ -188,15 +212,18 @@ const FormItem: React.FC<{ property: Property, label: string, onChange: (value: 
 
 interface DynamicFormProps {
   properties: { [key: string]: Property };
+  propertiesValue: { [key: string]: any } | Property[];
   onChange: (value: any) => void;
 }
 
-export const DynamicForm: React.FC<DynamicFormProps> = ({ properties, onChange }) => {
-  const [formData, setFormData] = useState<{ [key: string]: any }>({});
+export const DynamicForm: React.FC<DynamicFormProps> = ({ properties, propertiesValue, onChange }) => {
+  const [formData, setFormData] = useState<{ [key: string]: any }>(propertiesValue);
+  console.log(propertiesValue);
 
   const handleChange = (key: string, value: any) => {
-    setFormData({ ...formData, [key]: value });
-    console.log(formData);
+    const updatedFormData = { ...formData, [key]: value };
+    setFormData(updatedFormData);
+    onChange(updatedFormData);
   };
 
   return (
@@ -206,6 +233,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ properties, onChange }
           key={key}
           label={key}
           property={properties[key]}
+          propertyValue={formData[key]}
           onChange={(value) => handleChange(key, value)}
         />
       ))}
