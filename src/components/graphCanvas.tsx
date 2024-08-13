@@ -1,8 +1,9 @@
 import * as d3 from 'd3';
-import React, { act, useEffect, useRef, useState } from 'react';
-import { Graph } from './graph';
-import { ToolTypes } from './tools';
-import { Node, Link } from './types';
+import React, { useEffect, useRef, useState } from 'react';
+import { Graph } from '../graph';
+import { ToolTypes } from '../tools';
+import { Node, Link } from '../types';
+import { useGraph } from '../useGraph';
 
 
 function calculateEdgePoint(node: Node | undefined, target: Node | undefined) {
@@ -44,7 +45,7 @@ interface SelectionBox {
 export const GraphCanvas = ({ className, graph, activeTool, setGraph, setActiveTool, setDrawerVisible }: Props) => {
   const svgRef = useRef<SVGElement>(null);
   // selected items
-  const [selectedItems, setSelectedItems] = useState<Node[]>([]);
+  const { selectedItems, setSelectedItems } = useGraph();
   const [selectionBox, setSelectionBox] = useState<SelectionBox>({ startX: null, startY: null, width: null, height: null, isSelecting: false });
   // viewBox
   const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: 800, height: 600 });
@@ -263,14 +264,7 @@ export const GraphCanvas = ({ className, graph, activeTool, setGraph, setActiveT
     }
     else if (activeTool === ToolTypes.NODE.value) {
       const coords = d3.pointer(event);
-      const newNode: Node = {
-        id: `node-${graph.getNodeId()}`,
-        type: activeTool.replace('add', ''),
-        x: coords[0],
-        y: coords[1],
-        r: 20,
-        properties: {}
-      };
+      const newNode: Node = new Node(`node-${graph.getNodeId()}`, activeTool.replace('add', ''), coords[0], coords[1], 20, {});
       graph.addNode(newNode);
       setGraph(new Graph([...graph.nodes], [...graph.links]));
       console.log('New node added:', newNode);
