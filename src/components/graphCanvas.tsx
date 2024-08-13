@@ -264,7 +264,7 @@ export const GraphCanvas = ({ className, graph, activeTool, setGraph, setActiveT
     }
     else if (activeTool === ToolTypes.NODE.value) {
       const coords = d3.pointer(event);
-      const newNode: Node = new Node(`node-${graph.getNodeId()}`, activeTool.replace('add', ''), coords[0], coords[1], 20, {});
+      const newNode: Node = new Node(`node-${graph.getNodeId()}`, activeTool, coords[0], coords[1], 20, {});
       graph.addNode(newNode);
       setGraph(new Graph([...graph.nodes], [...graph.links]));
       console.log('New node added:', newNode);

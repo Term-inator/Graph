@@ -183,16 +183,19 @@ const FormItem: React.FC<FormItemProps> = ({ property, propertyValue, label, onC
                       key={index + key}
                       label={key}
                       property={item.properties[key]}
-                      propertyValue={item.properties[key].value}
+                      propertyValue={item.properties[key]}
                       onChange={(value) => {
-                        console.log(index, value);
+                        console.log(value);
                         const newItems = [...items];
-                        if (value.type === 'property') {
-                          newItems[index].properties[key] = value;
+                        if (value.properties) {
+                          for (const propKey of Object.keys(value.properties)) {
+                            newItems[index].properties[key].properties[propKey].value = value.properties[propKey].value;
+                          }
                         }
                         else {
                           newItems[index].properties[key].value = value;
                         }
+                        console.log(newItems);
                         setItems(newItems);
                         onChange(newItems);
                       }}
@@ -218,7 +221,7 @@ interface DynamicFormProps {
 
 export const DynamicForm: React.FC<DynamicFormProps> = ({ properties, propertiesValue, onChange }) => {
   const [formData, setFormData] = useState<{ [key: string]: any }>(propertiesValue);
-  console.log(propertiesValue);
+  // console.log(propertiesValue);
 
   const handleChange = (key: string, value: any) => {
     const updatedFormData = { ...formData, [key]: value };

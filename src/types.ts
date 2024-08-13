@@ -37,23 +37,23 @@ export class Node extends Base {
     this.y = y;
     this.r = r;
     this.properties = {
-      test: {
-        type: 'string',
-      },
-      bool: {
-        type: 'boolean',
-      },
-      props: {
-        type: 'property',
-        properties: {
-          field1: {
-            type: 'string',
-          },
-          field2: {
-            type: 'number',
-          }
-        }
-      },
+      // test: {
+      //   type: 'string',
+      // },
+      // bool: {
+      //   type: 'boolean',
+      // },
+      // props: {
+      //   type: 'property',
+      //   properties: {
+      //     field1: {
+      //       type: 'string',
+      //     },
+      //     field2: {
+      //       type: 'number',
+      //     }
+      //   }
+      // },
       arr: {
         type: 'array',
         properties: {
@@ -70,14 +70,14 @@ export class Node extends Base {
           }
         }
       },
-      arr2: {
-        type: 'array',
-        properties: {
-          first: {
-            type: 'string'
-          }
-        }
-      }
+      // arr2: {
+      //   type: 'array',
+      //   properties: {
+      //     first: {
+      //       type: 'string'
+      //     }
+      //   }
+      // }
     };
     console.log(this.properties);
   }
@@ -86,12 +86,15 @@ export class Node extends Base {
 export class Link extends Base {
   sourceId: string;
   targetId: string;
-  properties: any;
 
   constructor(sourceId: string, targetId: string, properties: any) {
     super(`${sourceId}-${targetId}`, properties);
     this.sourceId = sourceId;
     this.targetId = targetId;
-    this.properties = properties;
+    this.properties = {
+      priority: {
+        type: 'number'
+      }
+    };
   }
 }

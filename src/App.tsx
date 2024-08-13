@@ -1,8 +1,8 @@
 // App.tsx
-import React, { useEffect, useState } from 'react';
-import { Drawer, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import React, { useRef, useState } from 'react';
+import { Drawer, ToggleButtonGroup, ToggleButton, Button, Dialog, DialogTitle, DialogContent, DialogContentText, TextField, DialogActions } from '@mui/material';
 import styled from '@emotion/styled';
-import { debounce } from 'lodash';
+import { debounce, set } from 'lodash';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
@@ -80,8 +80,7 @@ const PropertyDrawer = ({ drawerVisible, changeHandler }: PropertyDrawerProps) =
 }
 
 
-const GraphEditor = () => {
-  const [graph, setGraph] = useState<Graph>(new Graph())
+const GraphEditor = ({ graph, setGraph }) => {
   const { selectedItems, setSelectedItems } = useGraph();
   const [drawerVisible, setDrawerVisible] = useState<boolean>(false);
   const [activeTool, setActiveTool] = useState<string | null>(null);
@@ -125,13 +124,79 @@ const GraphEditor = () => {
 
 
 export const App: React.FC = () => {
+  const [graph, setGraph] = useState<Graph>(new Graph());
+  const [openDialog, setOpenDialog] = useState(false);
+  const [fileName, setFileName] = useState('graph.json');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const fileReader = new FileReader();
+    const files = event.target.files;
+    if (files && files[0]) {
+      fileReader.readAsText(files[0], 'UTF-8');
+      fileReader.onload = e => {
+        const json = e.target?.result;
+        if (typeof json === 'string') {
+          graph.fromJSON(json);
+        }
+      };
+    }
+  };
+
+  const handleExport = () => {
+    if (!fileName) {
+      alert('Please enter a file name.');
+      return;
+    }
+
+    const json = JSON.stringify(graph.toJSON());
+    const blob = new Blob([json], { type: 'application/json' });
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = href;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setOpenDialog(false);
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
+      <Button onClick={() => fileInputRef.current?.click()}>Import Graph</Button>
+      <input
+        type="file"
+        style={{ display: 'none' }}
+        ref={fileInputRef}
+        onChange={handleImport}
+      />
+      <Button onClick={() => setOpenDialog(true)}>Export Graph</Button>
       <div className="app">
         <GraphProvider>
-          <GraphEditor />
+          <GraphEditor graph={graph} setGraph={setGraph}/>
         </GraphProvider>
       </div>
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+        <DialogTitle>Export Graph</DialogTitle>
+        <DialogContent>
+          <DialogContentText>Enter a file name for your graph JSON file.</DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="name"
+            label="File Name"
+            type="text"
+            fullWidth
+            variant="standard"
+            value={fileName}
+            onChange={e => setFileName(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
+          <Button onClick={handleExport}>Export</Button>
+        </DialogActions>
+      </Dialog>
     </DndProvider>
   );
 };
