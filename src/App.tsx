@@ -56,6 +56,8 @@ interface PropertyDrawerProps {
 const PropertyDrawer = ({ drawerVisible, changeHandler }: PropertyDrawerProps) => {
   const { selectedItems } = useGraph();
 
+  console.log(selectedItems);
+
   const PropertyHeader = styled('div')`
     padding: 10px;
     font-size: 20px;
@@ -91,6 +93,7 @@ const GraphEditor = ({ graph, setGraph }) => {
   };
 
   const changeHandler = (value: any) => {
+    console.log(111111,value);
     const selectedNode = graph.getNodeById(selectedItems[0].id);
     selectedNode?.setPropertiesValue(value);
     selectedItems[0].setPropertiesValue(value);

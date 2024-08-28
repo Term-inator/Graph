@@ -1,7 +1,6 @@
 export interface Property {
-  type: 'string' | 'boolean' | 'number' | 'property' | 'array';
+  type: 'string' | 'boolean' | 'number' | 'struct' | 'array';
   properties?: { [key: string]: Property };
-  value?: any;
 }
 
 
@@ -10,9 +9,8 @@ class Base {
   properties: { [key: string]: Property };
   propertiesValue: { [key: string]: any } = {};
 
-  constructor(id: string, properties: { [key: string]: Property }) {
+  constructor(id: string) {
     this.id = id;
-    this.properties = properties;
   }
 
   getPropertiesValue() {
@@ -30,12 +28,12 @@ export class Node extends Base {
   y: number;
   r: number
 
-  constructor(id: string, type: string, x: number, y: number, r: number, properties: { [key: string]: Property }) {
-    super(id, properties);
+  constructor(id: string, type: string, x: number, y: number) {
+    super(id);
     this.type = type;
     this.x = x;
     this.y = y;
-    this.r = r;
+    this.r = 20;
     this.properties = {
       // test: {
       //   type: 'string',
@@ -44,7 +42,7 @@ export class Node extends Base {
       //   type: 'boolean',
       // },
       // props: {
-      //   type: 'property',
+      //   type: 'struct',
       //   properties: {
       //     field1: {
       //       type: 'string',
@@ -57,8 +55,8 @@ export class Node extends Base {
       arr: {
         type: 'array',
         properties: {
-          first: {
-            type: 'property',
+          first: { 
+            type: 'struct',
             properties: {
               field1: {
                 type: 'string',
@@ -80,6 +78,15 @@ export class Node extends Base {
       // }
     };
     console.log(this.properties);
+
+    this.propertiesValue = {
+      // test: 'test',
+      // bool: true,
+      // props: {
+      //   field1: '',
+      //   field2: ''
+      // },
+    }
   }
 }
 
@@ -87,8 +94,8 @@ export class Link extends Base {
   sourceId: string;
   targetId: string;
 
-  constructor(sourceId: string, targetId: string, properties: any) {
-    super(`${sourceId}-${targetId}`, properties);
+  constructor(sourceId: string, targetId: string) {
+    super(`${sourceId}-${targetId}`);
     this.sourceId = sourceId;
     this.targetId = targetId;
     this.properties = {

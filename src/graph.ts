@@ -46,100 +46,36 @@ export class Graph {
   }
 
   fromJSON(json: any) {
+    for (const tool of Object.values(ToolTypes)) {
+      if (tool.ClassComponent === Node) {
+        if (json[`${tool.value.toLowerCase()}s`]) {
+          for (const node of json[`${tool.value.toLowerCase()}s`]) {
+            const propertiesValue: { [key: string]: any } = {};
+            for (const propKey of Object.keys(node)) {
+              if (propKey !== 'x' && propKey !== 'y' && propKey !== 'childrenIds') {
+                propertiesValue[propKey] = this.parsePropertiesVaue(node[propKey]);
+              }
+            }
+            const newNode = new Node(this.getNodeId(), node.x, node.y, propertiesValue);
+            this.addNode(newNode);
+          }
+        }
+      }
+    }
 
+    for (const node of this.nodes) {
+      const childrenIds = json.nodes.find((n: any) => n.id === node.id)?.childrenIds;
+      if (childrenIds) {
+        for (const childId of childrenIds) {
+          const childNode = this.getNodeById(childId);
+          if (childNode) {
+            const newLink = new Link(node.id, childNode.id, {});
+            this.addLink(newLink);
+          }
+        }
+      }
+    }
   }
-
-/**
- * 
- * @returns {
-    "test": "111",
-    "bool": true,
-    "props": {
-        "properties": {
-            "field1": {
-                "value": "123"
-            },
-            "field2": {
-                "value": 456
-            }
-        }
-    },
-    "arr": [
-        {
-            "type": "property",
-            "properties": {
-                "first": {
-                    "type": "property",
-                    "properties": {
-                        "field1": {
-                            "type": "string"
-                        },
-                        "field2": {
-                            "type": "number"
-                        }
-                    },
-                    "value": {
-                        "properties": {
-                            "field1": {
-                                "value": "1"
-                            },
-                            "field2": {
-                                "value": 2
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        {
-            "type": "property",
-            "properties": {
-                "first": {
-                    "type": "property",
-                    "properties": {
-                        "field1": {
-                            "type": "string"
-                        },
-                        "field2": {
-                            "type": "number"
-                        }
-                    },
-                    "value": {
-                        "properties": {
-                            "field1": {
-                                "value": "3"
-                            },
-                            "field2": {
-                                "value": 4
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    ],
-    "arr2": [
-        {
-            "type": "property",
-            "properties": {
-                "first": {
-                    "type": "string",
-                    "value": "5"
-                }
-            }
-        },
-        {
-            "type": "property",
-            "properties": {
-                "first": {
-                    "type": "string",
-                    "value": "6"
-                }
-            }
-        }
-    ]
-}
- */
 
   parsePropertiesVaue(propertiesValue: any) {
     if (typeof propertiesValue === 'object' && propertiesValue.properties) {
@@ -168,7 +104,7 @@ export class Graph {
     const result: { [key: string]: any } = {};
     for (const tool of Object.values(ToolTypes)) {
       if (tool.ClassComponent === Node) {
-        result[tool.value.toLowerCase()] = this.nodes.map(node => {
+        result[`${tool.value.toLowerCase()}s`] = this.nodes.map(node => {
           const properties: { [key: string]: any } = {
             x: node.x,
             y: node.y,

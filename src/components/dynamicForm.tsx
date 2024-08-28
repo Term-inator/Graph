@@ -7,7 +7,7 @@ import { cloneDeep } from 'lodash';
 
 interface DraggableItemProps {
   index: number;
-  type: string; // 增加了类型参数
+  type: string;
   moveItem: (dragIndex: number, hoverIndex: number) => void;
   children: React.ReactNode;
 }
@@ -79,13 +79,15 @@ const Label = styled('label')`
 `;
 
 interface FormItemProps {
-  property: Property;
+  property: Property | { [key: string]: Property };
   label: string;
-  propertyValue: { [key: string]: any } | Property[];
+  propertyValue: any;
   onChange: (value: any) => void;
 }
 
 const FormItem: React.FC<FormItemProps> = ({ property, propertyValue, label, onChange }) => {
+  const normalizedValue = propertyValue ?? (property.type === 'boolean' ? false : '');
+  console.log(propertyValue, normalizedValue)
   switch (property.type) {
     case 'string':
     case 'number':
@@ -96,12 +98,7 @@ const FormItem: React.FC<FormItemProps> = ({ property, propertyValue, label, onC
             type={property.type === 'number' ? 'number' : 'text'}
             variant="outlined"
             fullWidth
-            value={(() => {
-              if (propertyValue instanceof Object) {
-                return (propertyValue as { [key: string]: any }).value || '';
-              }
-              return propertyValue || '';
-            })()}
+            value={normalizedValue}
             onChange={(e) => onChange(property.type === 'number' ? Number(e.target.value) : e.target.value)}
           />
         </Box>
@@ -111,17 +108,13 @@ const FormItem: React.FC<FormItemProps> = ({ property, propertyValue, label, onC
         <Box display="flex" alignItems="center" marginBottom={2}>
           <Label>{label}</Label>
           <Switch 
-            checked={(() => {
-              if (propertyValue instanceof Object) {
-                return (propertyValue as { [key: string]: any }).value || false;
-              }
-              return propertyValue || false;
-            })()}
+            checked={normalizedValue}
             onChange={(e) => onChange(e.target.checked)} 
           />
         </Box>
       );
-      case 'property':
+      case 'struct':
+        const [values, setValues] = useState(propertyValue as { [key: string]: any } || {});
         return (
           <Box>
             <Label>{label}</Label>
@@ -131,11 +124,12 @@ const FormItem: React.FC<FormItemProps> = ({ property, propertyValue, label, onC
                   key={key}
                   label={key}
                   property={property.properties![key]}
-                  propertyValue={(propertyValue as { [key: string]: any })?.properties[key] || undefined}
+                  propertyValue={values[key]}
                   onChange={(value) => {
-                    const newProp = {...propertyValue, properties: {...(propertyValue as { [key: string]: any })?.properties}};
-                    newProp.properties[key] = {...newProp.properties[key], value};
-                    onChange(newProp);
+                    values[key] = value
+                    console.log(values)
+                    setValues(values)
+                    onChange(values);
                   }}
                 />
               ))}
@@ -144,13 +138,11 @@ const FormItem: React.FC<FormItemProps> = ({ property, propertyValue, label, onC
         );
       
       case 'array':
+        console.log(property)
         const arrayType = `array-${label}`;
-        const [items, setItems] = useState<any[]>(propertyValue as Property[] || []);
+        const [items, setItems] = useState<any[]>(normalizedValue as Property[] || []);
         const handleAdd = () => {
-          const newItem = {
-            type: 'property',
-            properties: cloneDeep(property.properties)
-          };
+          const newItem = {};
           setItems([...items, newItem]);
           onChange([...items, newItem]);
         };
@@ -178,26 +170,16 @@ const FormItem: React.FC<FormItemProps> = ({ property, propertyValue, label, onC
                     <Button onClick={() => handleRemove(index)}>Remove</Button>
                   </Box>
                   <Box marginLeft={2}>
-                  {item.properties && Object.keys(item.properties).map((key) => (
+                  {Object.keys(property.properties).map((key) => (
                     <FormItem
                       key={index + key}
                       label={key}
-                      property={item.properties[key]}
-                      propertyValue={item.properties[key]}
+                      property={property.properties[key]}
+                      propertyValue={item[key]}
                       onChange={(value) => {
-                        console.log(value);
-                        const newItems = [...items];
-                        if (value.properties) {
-                          for (const propKey of Object.keys(value.properties)) {
-                            newItems[index].properties[key].properties[propKey].value = value.properties[propKey].value;
-                          }
-                        }
-                        else {
-                          newItems[index].properties[key].value = value;
-                        }
-                        console.log(newItems);
-                        setItems(newItems);
-                        onChange(newItems);
+                        item[key] = value;
+                        setItems(items);
+                        onChange(items);
                       }}
                     />
                   ))}
@@ -221,10 +203,11 @@ interface DynamicFormProps {
 
 export const DynamicForm: React.FC<DynamicFormProps> = ({ properties, propertiesValue, onChange }) => {
   const [formData, setFormData] = useState<{ [key: string]: any }>(propertiesValue);
-  // console.log(propertiesValue);
 
   const handleChange = (key: string, value: any) => {
+    console.log(key, value)
     const updatedFormData = { ...formData, [key]: value };
+    console.log(updatedFormData)
     setFormData(updatedFormData);
     onChange(updatedFormData);
   };
