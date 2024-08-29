@@ -46,56 +46,27 @@ export class Graph {
   }
 
   fromJSON(json: any) {
+    this.nodes = [];
+    this.links = [];
+    this.nodeId = 0;
     for (const tool of Object.values(ToolTypes)) {
       if (tool.ClassComponent === Node) {
-        if (json[`${tool.value.toLowerCase()}s`]) {
-          for (const node of json[`${tool.value.toLowerCase()}s`]) {
-            const propertiesValue: { [key: string]: any } = {};
-            for (const propKey of Object.keys(node)) {
-              if (propKey !== 'x' && propKey !== 'y' && propKey !== 'childrenIds') {
-                propertiesValue[propKey] = this.parsePropertiesVaue(node[propKey]);
-              }
-            }
-            const newNode = new Node(this.getNodeId(), node.x, node.y, propertiesValue);
+        const nodes = json[`${tool.value.toLowerCase()}s`];
+        console.log(nodes);
+        if (nodes) {
+          for (const node of nodes) {
+            const newNode = new Node(node.id, tool.value.toLowerCase(), node.x, node.y);
+            newNode.propertiesValue = { ...node };
+            delete newNode.propertiesValue.x;
+            delete newNode.propertiesValue.y;
+            delete newNode.propertiesValue.childrenIds;
             this.addNode(newNode);
+
+            for (const childId of node.childrenIds) {
+              this.addLink(new Link(node.id, childId));
+            }
           }
         }
-      }
-    }
-
-    for (const node of this.nodes) {
-      const childrenIds = json.nodes.find((n: any) => n.id === node.id)?.childrenIds;
-      if (childrenIds) {
-        for (const childId of childrenIds) {
-          const childNode = this.getNodeById(childId);
-          if (childNode) {
-            const newLink = new Link(node.id, childNode.id, {});
-            this.addLink(newLink);
-          }
-        }
-      }
-    }
-  }
-
-  parsePropertiesVaue(propertiesValue: any) {
-    if (typeof propertiesValue === 'object' && propertiesValue.properties) {
-      const result: { [key: string]: any } = {};
-      for (const propKey of Object.keys(propertiesValue.properties)) {
-        result[propKey] = this.parsePropertiesVaue(propertiesValue.properties[propKey]);
-      }
-      return result;
-    }
-    else if (Array.isArray(propertiesValue)) {
-      return propertiesValue.map((item: any) => {
-        return this.parsePropertiesVaue(item);
-      });
-    }
-    else {
-      if (propertiesValue.value) {
-        return propertiesValue.value;
-      }
-      else {
-        return propertiesValue;
       }
     }
   }
@@ -106,14 +77,12 @@ export class Graph {
       if (tool.ClassComponent === Node) {
         result[`${tool.value.toLowerCase()}s`] = this.nodes.map(node => {
           const properties: { [key: string]: any } = {
+            id: node.id,
             x: node.x,
             y: node.y,
-            childrenIds: []
+            childrenIds: [],
+            ...node.propertiesValue
           };
-          
-          for (const propKey of Object.keys(node.propertiesValue)) {
-            properties[propKey] = this.parsePropertiesVaue(node.propertiesValue[propKey]);
-          }
           
           this.links.forEach(link => {
             if (link.sourceId === node.id) {

@@ -140,7 +140,8 @@ export const App: React.FC = () => {
       fileReader.onload = e => {
         const json = e.target?.result;
         if (typeof json === 'string') {
-          graph.fromJSON(json);
+          graph.fromJSON(JSON.parse(json));
+          setGraph(new Graph(graph.nodes, graph.links));
         }
       };
     }
