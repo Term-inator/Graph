@@ -2,7 +2,7 @@ import * as d3 from 'd3';
 import React, { useEffect, useRef, useState } from 'react';
 import { Graph } from '../graph';
 import { ToolTypes } from '../tools';
-import { Node, Link } from '../types';
+import { Node, Link, Base } from '../types';
 import { useGraph } from '../useGraph';
 
 
@@ -58,11 +58,7 @@ export const GraphCanvas = ({ className, graph, activeTool, setGraph, setActiveT
     if (activeTool === ToolTypes.LINK.value) {
       if (linkSource.current && node !== linkSource.current) {
         // choose target node for link
-        const newLink: Link = {
-          sourceId: linkSource.current.id,
-          targetId: node.id,
-          properties: {}
-        };
+        const newLink = new Link(linkSource.current.id, node.id);
         graph.addLink(newLink);
         setGraph(new Graph([...graph.nodes], [...graph.links]));
         linkSource.current = null;  // reset link source
@@ -74,7 +70,7 @@ export const GraphCanvas = ({ className, graph, activeTool, setGraph, setActiveT
   };
 
 
-  const handleSelection = (event: React.MouseEvent<SVGSVGElement, MouseEvent>, item: Node) => {
+  const handleSelection = (event: React.MouseEvent<SVGSVGElement, MouseEvent>, item: Base) => {
     let newSelectedItems;
 
     if (event.ctrlKey || event.metaKey) {
@@ -99,6 +95,11 @@ export const GraphCanvas = ({ className, graph, activeTool, setGraph, setActiveT
     event.stopPropagation();
     handleLinkNode(event, node);
     handleSelection(event, node);
+  }
+
+  const handleLinkClick = (event: React.MouseEvent<SVGSVGElement, MouseEvent>, link: Link) => {
+    event.stopPropagation();
+    handleSelection(event, link);
   }
 
   useEffect(() => {
@@ -207,10 +208,12 @@ export const GraphCanvas = ({ className, graph, activeTool, setGraph, setActiveT
       .attr("y1", l => calculateEdgePoint(graph.getNodeById(l.sourceId), graph.getNodeById(l.targetId)).y)
       .attr("x2", l => calculateEdgePoint(graph.getNodeById(l.targetId), graph.getNodeById(l.sourceId)).x)
       .attr("y2", l => calculateEdgePoint(graph.getNodeById(l.targetId), graph.getNodeById(l.sourceId)).y)
-      .style("stroke", "#333")
-      .style("stroke-width", 2)
       .style("cursor", "pointer")
+      .attr("class", d => selectedItems.includes(d) ? "selected" : "not-selected")
       .attr("marker-end", "url(#arrow)")
+      .on('click', (event, l) => {
+        handleLinkClick(event, l);
+      });
 
     links.exit().remove();
 

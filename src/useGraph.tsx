@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState } from "react";
-import { Node } from "./types";
+import { Base } from "./types";
 
 interface GraphContextType {
-  selectedItems: Node[];
-  setSelectedItems: (nodes: Node[]) => void;
+  selectedItems: Base[];
+  setSelectedItems: (items: Base[]) => void;
 }
 
 const GraphContext = createContext<GraphContextType | undefined>(undefined);
@@ -14,7 +14,7 @@ interface Props {
 
 
 export const GraphProvider: React.FC<Props> = ({ children }: Props) => {
-  const [selectedItems, setSelectedItems] = useState<Node[]>([]);
+  const [selectedItems, setSelectedItems] = useState<Base[]>([]);
 
   return (
     <GraphContext.Provider value={{ selectedItems, setSelectedItems }}>

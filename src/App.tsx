@@ -56,7 +56,7 @@ interface PropertyDrawerProps {
 const PropertyDrawer = ({ drawerVisible, changeHandler }: PropertyDrawerProps) => {
   const { selectedItems } = useGraph();
 
-  console.log(selectedItems);
+  console.log(111, selectedItems);
 
   const PropertyHeader = styled('div')`
     padding: 10px;

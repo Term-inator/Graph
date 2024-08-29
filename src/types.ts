@@ -4,7 +4,7 @@ export interface Property {
 }
 
 
-class Base {
+export class Base {
   id: string;
   properties: { [key: string]: Property };
   propertiesValue: { [key: string]: any } = {};
@@ -35,23 +35,23 @@ export class Node extends Base {
     this.y = y;
     this.r = 20;
     this.properties = {
-      // test: {
-      //   type: 'string',
-      // },
-      // bool: {
-      //   type: 'boolean',
-      // },
-      // props: {
-      //   type: 'struct',
-      //   properties: {
-      //     field1: {
-      //       type: 'string',
-      //     },
-      //     field2: {
-      //       type: 'number',
-      //     }
-      //   }
-      // },
+      test: {
+        type: 'string',
+      },
+      bool: {
+        type: 'boolean',
+      },
+      props: {
+        type: 'struct',
+        properties: {
+          field1: {
+            type: 'string',
+          },
+          field2: {
+            type: 'number',
+          }
+        }
+      },
       arr: {
         type: 'array',
         properties: {
@@ -103,5 +103,8 @@ export class Link extends Base {
         type: 'number'
       }
     };
+
+    this.propertiesValue = {
+    }
   }
 }

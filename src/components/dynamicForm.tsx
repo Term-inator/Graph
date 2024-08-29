@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled from '@emotion/styled';
 import { Button, TextField, Switch, FormGroup, Box } from '@mui/material';
 import { useDrag, useDrop } from 'react-dnd';
@@ -114,7 +114,12 @@ const FormItem: React.FC<FormItemProps> = ({ property, propertyValue, label, onC
         </Box>
       );
       case 'struct':
-        const [values, setValues] = useState(propertyValue as { [key: string]: any } || {});
+        const [values, setValues] = useState(propertyValue || {});
+
+        useEffect(() => {
+          setValues(propertyValue || {});
+        }, [propertyValue]);
+
         return (
           <Box>
             <Label>{label}</Label>
@@ -126,10 +131,9 @@ const FormItem: React.FC<FormItemProps> = ({ property, propertyValue, label, onC
                   property={property.properties![key]}
                   propertyValue={values[key]}
                   onChange={(value) => {
-                    values[key] = value
-                    console.log(values)
-                    setValues(values)
-                    onChange(values);
+                    const newValues = { ...values, [key]: value };
+                    setValues(newValues);
+                    onChange(newValues);
                   }}
                 />
               ))}
@@ -138,9 +142,13 @@ const FormItem: React.FC<FormItemProps> = ({ property, propertyValue, label, onC
         );
       
       case 'array':
-        console.log(property)
         const arrayType = `array-${label}`;
         const [items, setItems] = useState<any[]>(normalizedValue as Property[] || []);
+
+        useEffect(() => {
+          setItems(normalizedValue || []);
+        }, [normalizedValue]);
+
         const handleAdd = () => {
           const newItem = {};
           setItems([...items, newItem]);
@@ -177,9 +185,11 @@ const FormItem: React.FC<FormItemProps> = ({ property, propertyValue, label, onC
                       property={property.properties[key]}
                       propertyValue={item[key]}
                       onChange={(value) => {
-                        item[key] = value;
-                        setItems(items);
-                        onChange(items);
+                        const newItems = [...items];
+                        const newItem = { ...newItems[index], [key]: value };
+                        newItems[index] = newItem;
+                        setItems(newItems);
+                        onChange(newItems);
                       }}
                     />
                   ))}
@@ -202,7 +212,18 @@ interface DynamicFormProps {
 }
 
 export const DynamicForm: React.FC<DynamicFormProps> = ({ properties, propertiesValue, onChange }) => {
-  const [formData, setFormData] = useState<{ [key: string]: any }>(propertiesValue);
+  const [formData, setFormData] = useState<{ [key: string]: any }>(propertiesValue || {});
+
+  useEffect(() => {
+    setFormData(propertiesValue);
+  }, [propertiesValue]);
+
+  useEffect(() => {
+    console.log("FormData updated:", formData);
+  }, [formData]);
+
+  console.log(properties, propertiesValue, formData)
+
 
   const handleChange = (key: string, value: any) => {
     console.log(key, value)
